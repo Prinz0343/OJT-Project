@@ -307,28 +307,32 @@
         <!-- Add dynamic rows here as new goals are created -->
     </table>
 
-    <!-- The Modal -->
-    <div id="createGoalModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>CREATE GOAL</h2>
+<!-- The Modal -->
+<div id="createGoalModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>CREATE GOAL</h2>
+        <form action="creategoal.php" method="post">
             <input type="text" id="title" name="title" class="form-input" placeholder="Title" required>
-            <p>Product ID: <span id="productID">Auto-generated</span></p>
-            <input type="text" id="year" name="year" class="form-input" placeholder="Year" required>
+            <input type="number" id="year" name="year" class="form-input" placeholder="Year" value="<?php echo date('Y'); ?>" required>
             <input type="text" id="department" name="department" class="form-input" placeholder="Department" required>
             <input type="text" id="targets" name="targets" class="form-input" placeholder="Targets" required>
-            <input type="text" id="totalBudget" name="totalBudget" class="form-input" placeholder="Total Budget" required>
+            <input type="number" id="totalBudget" name="totalBudget" class="form-input" placeholder="Total Budget" required>
             <select id="initiative" name="initiative" class="form-select" required>
                 <option value="" disabled selected>Initiative</option>
-                <!-- Placeholder for Mission KPI options -->
+                <option value="KPI 1.1">KPI 1.1</option>
+                <option value="KPI 1.2">KPI 1.2</option>
+                <option value="KPI 1.3">KPI 1.3</option>
+                <option value="KPI 1.4">KPI 1.4</option>
             </select>
             <div class="kpi-text" id="kpiDetails">Key performance indicator details</div>
             <div class="save-button-container">
                 <button type="submit" class="create-button">Save Goal</button>
             </div>
-        </div>
+        </form>
     </div>
-
+</div>
+    
     <script>
         // Get the modal
         var modal = document.getElementById("createGoalModal");
