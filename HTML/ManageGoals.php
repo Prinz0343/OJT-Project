@@ -1,10 +1,14 @@
 <!--Date: June 29, 2024 - 9:41pm start
     Description: Front-end of the Manage Goals Page for the Project
     Edited: July 2 & 3 2024
+            July 4 2024 by Back End Team (BET) - Create Goals Window and Manage Goals Table Functionalities
+            July 5 2024 by BET - Archive Feature
     Comments of the Developer:  Read comments. Functionalities will fail to work indeed until they are connected to a backend API that handles them-->
 
-<?php include('../php/db.php'); ?>
-<?php include('../php/anti-shortcut_ssd.php'); ?>
+<?php 
+    include('../php/db.php');
+    include('../php/anti-shortcut_ssd.php');
+    include('../php/department-autofill.php');?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -281,7 +285,7 @@
             <th class="medium-style">Actions</th>
         </tr>
         <?php
-        $sql = "SELECT title, initiative, targets, total_budget FROM goal";
+        $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL";
         $result = $conn->query($sql);
 
         if ($result->num_rows > 0) {
@@ -292,11 +296,15 @@
                 echo "<td>{$row['initiative']}</td>";
                 echo "<td>{$row['targets']}</td>";
                 echo "<td>{$row['total_budget']}</td>";
-                echo "<td>
-                        <button class=\"edit-button\">Edit</button>
-                        <button class=\"archive-button\">Archive</button>
-                      </td>";
-                echo "</tr>";
+                echo '<td>
+                        <button class="edit-button">Edit</button>
+                        <form method="post" action="../php/archive_goal.php" style="display:inline;"onsubmit="return confirmArchive(\'' . $row['title'] . '\');">
+                            <input type="hidden" name="goal_id" value="' . $row['id'] . '">
+                            <input type="hidden" name="goal_title" value="' . $row['title'] . '">
+                            <button type="submit" class="archive-button">Archive</button>
+                        </form>
+                    </td>';
+                echo '</tr>';
                 // Alternate row class for styling
                 $rowClass = ($rowClass == "row-1") ? "row-2" : "row-1";
             }
@@ -316,8 +324,8 @@
         <h2>CREATE GOAL</h2>
         <form action="../php/creategoal.php" method="post">
             <input type="text" id="title" name="title" class="form-input" placeholder="Title" required>
-            <input type="number" id="year" name="year" class="form-input" placeholder="Year" value="<?php echo date('Y'); ?>" required>
-            <input type="text" id="department" name="department" class="form-input" placeholder="Department" required>
+            <input type="number" id="year" name="year" class="form-input" placeholder="Year" value="<?php echo date('Y'); ?>" readonly required>
+            <input type="text" id="department" name="department" class="form-input" placeholder="Department" value="<?php echo htmlspecialchars($department); ?>" readonly required>
             <input type="text" id="targets" name="targets" class="form-input" placeholder="Targets" required>
             <input type="number" id="totalBudget" name="totalBudget" class="form-input" placeholder="Total Budget" required>
             <select id="initiative" name="initiative" class="form-select" required>
@@ -365,6 +373,12 @@
             var kpiDetails = document.getElementById("kpiDetails");
             kpiDetails.textContent = "Details for " + selectedValue;
         }
+
+          // Confirmation dialog for archiving action
+          function confirmArchive(goalName) {
+            var confirmation = confirm("Are you sure you want to archive this goal: " + goalName + "?");
+            return confirmation;
+    } 
     </script>
 
 <div class="previous-goals-section">
