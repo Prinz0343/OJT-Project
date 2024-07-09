@@ -5,6 +5,7 @@
             July 5 2024 by BET - Archive Feature
             July 8 2024 by BET - Display in the CURRENT GOALS table only the records under the user's department and the current year
                                - Made the PREVIOUS GOALS table work
+            July 9 2024 by BET - Confirm Archive Dialog
     Comments of the Developer:  Read comments. Functionalities will fail to work indeed until they are connected to a backend API that handles them-->
 
     <?php 
@@ -257,7 +258,7 @@
             <button onclick="location.href='ManageActionPlans.html'">Manage AP</button>
             <button onclick="location.href='ViewReports.html'">View Reports</button>
             <form method="post" class="logout">
-                    <button type="submit" name="logout" class="logout-button">Log Out</button>
+                    <button type="submit" name="logout" class="logout">Log Out</button>
             </form>
             <!--
             <div class="logout">
@@ -268,8 +269,8 @@
     </header>
 
 
-     <!-- Dynamic Goal Title based on the User's Department
-        Back End Logic is written in ../php/department-autofill.php -->
+<!-- Dynamic Goal Title based on the User's Department
+    Back End Logic is written in ../php/department-autofill.php -->
     <?php echo $title; ?>
     <table>
         <tr>
@@ -313,7 +314,7 @@
                 echo "<td>{$row['total_budget']}</td>";
                 echo '<td>
                         <button class="edit-button">Edit</button>
-                        <form method="post" action="../php/archive_goal.php" style="display:inline;">
+                        <form method="post" action="../php/archive_goal.php" style="display:inline" onsubmit="return confirmArchive(event);">
                             <input type="hidden" name="goal_id" value="' . $row['id'] . '">
                             <input type="hidden" name="goal_title" value="' . $row['title'] . '">
                             <button type="submit" class="archive-button">Archive</button>
@@ -388,62 +389,50 @@
         }
 
     </script>
-
-     <!-- The Archive Dialog -->
-     <div id="myModal" class="modal">
-        <!-- Modal content -->
+     <!-- Archive confirmation modal -->
+    <div id="archiveModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Archive Confirmation</h2>
+            <h2>Confirm Archiving</h2>
             <p>Are you sure you want to archive this goal?</p>
-            <button id="confirmArchiveBtn">Yes</button>
-            <button id="cancelArchiveBtn">No</button>
+            <button id="confirmYes">Yes</button>
+            <button id="confirmNo">No</button>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get the modal
-            var modal = document.getElementById("myModal");
+        let currentForm = null;
 
-            // Get the <span> element that closes the modal
-            var span = document.getElementsByClassName("close")[0];
+        function confirmArchive(event) {
+            event.preventDefault(); // Prevent form submission
+            currentForm = event.target.closest('form'); // Capture the form reference
+            var modal = document.getElementById("archiveModal");
+            modal.style.display = "block";
 
-            // Get the buttons that open the modal
-            var archiveButtons = document.getElementsByClassName("archive-button");
+            return false; // Prevent form submission
+        }
 
-            // When the user clicks on the button, open the modal
-            Array.from(archiveButtons).forEach(function(button) {
-                button.onclick = function() {
-                    modal.style.display = "block";
-                };
-            });
+        document.getElementById("confirmYes").onclick = function() {
+        if (currentForm) {
+            currentForm.submit(); // Submit the captured form
+        }
+        var modal = document.getElementById("archiveModal");
+        modal.style.display = "none";
+    };
 
-            // When the user clicks on <span> (x), close the modal
-            span.onclick = function() {
-                modal.style.display = "none";
-            };
+    document.getElementById("confirmNo").onclick = function() {
+        var modal = document.getElementById("archiveModal");
+        modal.style.display = "none";
+    };
 
-            // When the user clicks on "No" button, close the modal
-            document.getElementById("cancelArchiveBtn").onclick = function() {
-                modal.style.display = "none";
-            };
+    // Close the modal when the user clicks outside of it
+    window.onclick = function(event) {
+        var modal = document.getElementById("archiveModal");
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    };
+</script>
 
-            // When the user clicks anywhere outside of the modal, close it
-            window.onclick = function(event) {
-                if (event.target == modal) {
-                    modal.style.display = "none";
-                }
-            };
-
-            // Handle the archive confirmation
-            document.getElementById("confirmArchiveBtn").onclick = function() {
-                // Here you would add your AJAX call to archive the goal
-                alert("Goal archived!"); // Placeholder for actual logic
-                modal.style.display = "none";
-            };
-        });
-    </script>   
 
 <div class="previous-goals-section">
     <div class="toggle-table">
@@ -457,30 +446,6 @@
             <th class="medium-style2">Budget</th>
             <th class="medium-style2">Actions</th>
         </tr>
-        <!-- Example rows, replace with your actual data -->
-         <!--
-        <tr class="row-1">
-            <td>Previous Goal 1</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>
-                <button class="view-button">View</button>
-                <button class="copy-button">Copy</button>
-                <button class="archive-button">Archive</button>
-            </td>
-        </tr>
-        <tr class="row-2">
-            <td>Previous Goal 2</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td>
-                <button class="view-button">View</button>
-                <button class="copy-button">Copy</button>
-                <button class="archive-button">Archive</button>
-            </td>
-        </tr>-->
         <?php
             // SQL query to fetch unarchived goals from previous years under the user's department
             $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL AND department = ? AND year < ? ORDER BY year DESC";
@@ -506,7 +471,7 @@
                     echo '<td>
                             <button class="view-button">View</button>
                             <button class="copy-button">Copy</button>
-                            <form method="post" action="../php/archive_goal.php" style="display:inline;" onsubmit="return confirmArchive(\'' . $row['title'] . '\');">
+                            <form method="post" action="../php/archive_goal.php" style="display:inline" onsubmit="return confirmArchive(event);">
                                 <input type="hidden" name="goal_id" value="' . $row['id'] . '">
                                 <input type="hidden" name="goal_title" value="' . $row['title'] . '">
                                 <button type="submit" class="archive-button">Archive</button>
