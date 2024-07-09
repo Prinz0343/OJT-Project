@@ -3,12 +3,15 @@
     Edited: July 2 & 3 2024
             July 4 2024 by Back End Team (BET) - Create Goals Window and Manage Goals Table Functionalities
             July 5 2024 by BET - Archive Feature
+            July 8 2024 by BET - Display in the CURRENT GOALS table only the records under the user's department and the current year
+                               - Made the PREVIOUS GOALS table work
     Comments of the Developer:  Read comments. Functionalities will fail to work indeed until they are connected to a backend API that handles them-->
 
-<?php 
+    <?php 
     include('../php/db.php');
     include('../php/anti-shortcut_ssd.php');
-    include('../php/department-autofill.php');?>
+    include('../php/department-autofill.php');
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -260,12 +263,14 @@
             <div class="logout">
                 <a href="#" class="logout">Logout</a>
             </div>
-    -->
+             -->
         </div>
     </header>
 
-    <div class="goal-title">Sabbath School Goals</div>
 
+     <!-- Dynamic Goal Title based on the User's Department
+        Back End Logic is written in ../php/department-autofill.php -->
+    <?php echo $title; ?>
     <table>
         <tr>
             <td colspan="5" class="medium-style">
@@ -285,8 +290,18 @@
             <th class="medium-style">Actions</th>
         </tr>
         <?php
-        $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL";
-        $result = $conn->query($sql);
+        //code to only display the current year's unarchived records under the user's department 
+        $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL AND department = ? AND year = ?";
+        $stmt_goals = $conn->prepare($sql);
+
+        // Bind the department parameter
+        $stmt_goals->bind_param("si", $department, $current_year); // "si" for string and integer
+
+        // Execute the statement
+        $stmt_goals->execute();
+
+        // Get result set
+        $result = $stmt_goals->get_result();
 
         if ($result->num_rows > 0) {
             $rowClass = "row-1";
@@ -298,7 +313,7 @@
                 echo "<td>{$row['total_budget']}</td>";
                 echo '<td>
                         <button class="edit-button">Edit</button>
-                        <form method="post" action="../php/archive_goal.php" style="display:inline;"onsubmit="return confirmArchive(\'' . $row['title'] . '\');">
+                        <form method="post" action="../php/archive_goal.php" style="display:inline;">
                             <input type="hidden" name="goal_id" value="' . $row['id'] . '">
                             <input type="hidden" name="goal_title" value="' . $row['title'] . '">
                             <button type="submit" class="archive-button">Archive</button>
@@ -312,9 +327,7 @@
             echo "<tr><td colspan='5'>No goals found.</td></tr>";
         }
 
-        $conn->close();
         ?>
-        <!-- Add dynamic rows here as new goals are created -->
     </table>
 
 <!-- The Modal -->
@@ -374,12 +387,63 @@
             kpiDetails.textContent = "Details for " + selectedValue;
         }
 
-          // Confirmation dialog for archiving action
-          function confirmArchive(goalName) {
-            var confirmation = confirm("Are you sure you want to archive this goal: " + goalName + "?");
-            return confirmation;
-    } 
     </script>
+
+     <!-- The Archive Dialog -->
+     <div id="myModal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Archive Confirmation</h2>
+            <p>Are you sure you want to archive this goal?</p>
+            <button id="confirmArchiveBtn">Yes</button>
+            <button id="cancelArchiveBtn">No</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the modal
+            var modal = document.getElementById("myModal");
+
+            // Get the <span> element that closes the modal
+            var span = document.getElementsByClassName("close")[0];
+
+            // Get the buttons that open the modal
+            var archiveButtons = document.getElementsByClassName("archive-button");
+
+            // When the user clicks on the button, open the modal
+            Array.from(archiveButtons).forEach(function(button) {
+                button.onclick = function() {
+                    modal.style.display = "block";
+                };
+            });
+
+            // When the user clicks on <span> (x), close the modal
+            span.onclick = function() {
+                modal.style.display = "none";
+            };
+
+            // When the user clicks on "No" button, close the modal
+            document.getElementById("cancelArchiveBtn").onclick = function() {
+                modal.style.display = "none";
+            };
+
+            // When the user clicks anywhere outside of the modal, close it
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            };
+
+            // Handle the archive confirmation
+            document.getElementById("confirmArchiveBtn").onclick = function() {
+                // Here you would add your AJAX call to archive the goal
+                alert("Goal archived!"); // Placeholder for actual logic
+                modal.style.display = "none";
+            };
+        });
+    </script>   
 
 <div class="previous-goals-section">
     <div class="toggle-table">
@@ -394,6 +458,7 @@
             <th class="medium-style2">Actions</th>
         </tr>
         <!-- Example rows, replace with your actual data -->
+         <!--
         <tr class="row-1">
             <td>Previous Goal 1</td>
             <td></td>
@@ -415,9 +480,51 @@
                 <button class="copy-button">Copy</button>
                 <button class="archive-button">Archive</button>
             </td>
-        </tr>
-        <!-- Add more rows as needed -->
-    </table>
+        </tr>-->
+        <?php
+            // SQL query to fetch unarchived goals from previous years under the user's department
+            $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL AND department = ? AND year < ? ORDER BY year DESC";
+            $stmt_goals = $conn->prepare($sql);
+
+            // Bind parameters
+            $stmt_goals->bind_param("si", $department, $current_year); // "si" for string and integer
+
+            // Execute the statement
+            $stmt_goals->execute();
+
+            // Get result set
+            $result = $stmt_goals->get_result();
+
+            if ($result->num_rows > 0) {
+                $rowClass = "row-1";
+                while ($row = $result->fetch_assoc()) {
+                    echo "<tr class=\"$rowClass\">";
+                    echo "<td>{$row['title']}</td>";
+                    echo "<td>{$row['initiative']}</td>";
+                    echo "<td>{$row['targets']}</td>";
+                    echo "<td>{$row['total_budget']}</td>";
+                    echo '<td>
+                            <button class="view-button">View</button>
+                            <button class="copy-button">Copy</button>
+                            <form method="post" action="../php/archive_goal.php" style="display:inline;" onsubmit="return confirmArchive(\'' . $row['title'] . '\');">
+                                <input type="hidden" name="goal_id" value="' . $row['id'] . '">
+                                <input type="hidden" name="goal_title" value="' . $row['title'] . '">
+                                <button type="submit" class="archive-button">Archive</button>
+                            </form>
+                        </td>';
+                    echo '</tr>';
+                    // Alternate row class for styling
+                    $rowClass = ($rowClass == "row-1") ? "row-2" : "row-1";
+                }
+            } else {
+                echo "<tr><td colspan='5'>No goals found.</td></tr>";
+            }
+
+            $stmt_goals->close();
+            $conn->close();
+            ?>
+            </table>
+
 </div>
 
 <script>
