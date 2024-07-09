@@ -12,4 +12,15 @@ $stmt->execute();
 $stmt->bind_result($department);
 $stmt->fetch();
 $stmt->close();
+
+// Get current year
+$current_year = date('Y');
+
+$title = "<div class=\"goal-title\">" . htmlspecialchars($department) . " Department Goals</div>";
+
+// Check if department is fetched correctly
+if (empty($department)) {
+    echo "Department not found for user ID: $userId";
+    exit; // Exit or handle accordingly
+}
 ?>
