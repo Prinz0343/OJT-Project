@@ -5,13 +5,19 @@
             July 5 2024 by BET - Archive Feature
             July 8 2024 by BET - Display in the CURRENT GOALS table only the records under the user's department and the current year
                                - Made the PREVIOUS GOALS table work
+                               - Automatic Title for the Goals Table based on the user's department
             July 9 2024 by BET - Confirm Archive Dialog
+                               - Search Feature
+                               - View Feature
+            July 10 2024 by BET- EDIT feature
+                               - COPY feature 
     Comments of the Developer:  Read comments. Functionalities will fail to work indeed until they are connected to a backend API that handles them-->
 
     <?php 
     include('../php/db.php');
     include('../php/anti-shortcut_ssd.php');
     include('../php/department-autofill.php');
+    include('../php/total_budget-autofill.php');
 ?>
 
 <!DOCTYPE html>
@@ -20,6 +26,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Goals</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400&display=swap');
 
@@ -165,50 +174,45 @@
             background-color: #e6ebfc;
         }
         /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgb(0,0,0);
-            background-color: rgba(0,0,0,0.4);
-            padding-top: 60px;
-        }
+        /* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+    padding-top: 60px;
+}
 
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-        }
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 10px;
+    text-align: center; /* Center the text */
+}
 
-        .modal-content h2 {
-            width: 100%;
-        }
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
 
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
 
         .form-input {
             width: calc(48% - 10px);
@@ -260,23 +264,35 @@
             <form method="post" class="logout">
                     <button type="submit" name="logout" class="logout">Log Out</button>
             </form>
-            <!--
+        <!--
             <div class="logout">
                 <a href="#" class="logout">Logout</a>
             </div>
-             -->
+        -->
         </div>
     </header>
 
+    <!-- Dynamic Goal Title based on the User's Department -->
+    <!-- Back End Logic is written in ../php/department-autofill.php -->
+        <?php echo $title; ?>
 
-<!-- Dynamic Goal Title based on the User's Department
-    Back End Logic is written in ../php/department-autofill.php -->
-    <?php echo $title; ?>
+
     <table>
         <tr>
             <td colspan="5" class="medium-style">
+            <!--
                 <input type="text" class="input-bar" placeholder="Search...">
                 <button class="search-button">Search</button>
+            -->
+    <form method="GET" action="ManageGoals.php" style="display: flex; align-items: center;">
+    <div style="position: relative; display: inline-block;">
+        <input type="text" name="search" id="searchInput" class="input-bar" placeholder="Search..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" style="padding-right: 24px;">
+        <button type="button" id="clearSearch" style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); border: none; background: none; cursor: pointer; font-size: 16px; display: <?php echo isset($_GET['search']) && $_GET['search'] != '' ? 'inline' : 'none'; ?>;">&#10005;</button>
+    </div>
+        <button type="submit" class="search-button">Search</button>
+    </form>
+
+
                 <button class="create-button" id="createGoalBtn">Create New Goal</button>
             </td>
         </tr>
@@ -290,48 +306,16 @@
             <th class="medium-style">Budget</th>
             <th class="medium-style">Actions</th>
         </tr>
+
+        <!-- php code for displaying CURRENT GOALS and for searching goals -->
+        <!-- php code for archiving is included -->
         <?php
-        //code to only display the current year's unarchived records under the user's department 
-        $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL AND department = ? AND year = ?";
-        $stmt_goals = $conn->prepare($sql);
-
-        // Bind the department parameter
-        $stmt_goals->bind_param("si", $department, $current_year); // "si" for string and integer
-
-        // Execute the statement
-        $stmt_goals->execute();
-
-        // Get result set
-        $result = $stmt_goals->get_result();
-
-        if ($result->num_rows > 0) {
-            $rowClass = "row-1";
-            while ($row = $result->fetch_assoc()) {
-                echo "<tr class=\"$rowClass\">";
-                echo "<td>{$row['title']}</td>";
-                echo "<td>{$row['initiative']}</td>";
-                echo "<td>{$row['targets']}</td>";
-                echo "<td>{$row['total_budget']}</td>";
-                echo '<td>
-                        <button class="edit-button">Edit</button>
-                        <form method="post" action="../php/archive_goal.php" style="display:inline" onsubmit="return confirmArchive(event);">
-                            <input type="hidden" name="goal_id" value="' . $row['id'] . '">
-                            <input type="hidden" name="goal_title" value="' . $row['title'] . '">
-                            <button type="submit" class="archive-button">Archive</button>
-                        </form>
-                    </td>';
-                echo '</tr>';
-                // Alternate row class for styling
-                $rowClass = ($rowClass == "row-1") ? "row-2" : "row-1";
-            }
-        } else {
-            echo "<tr><td colspan='5'>No goals found.</td></tr>";
-        }
-
+        include '../php/current_goal.php'
         ?>
+
     </table>
 
-<!-- The Modal -->
+<!-- The create Goal Modal -->
 <div id="createGoalModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
@@ -341,7 +325,7 @@
             <input type="number" id="year" name="year" class="form-input" placeholder="Year" value="<?php echo date('Y'); ?>" readonly required>
             <input type="text" id="department" name="department" class="form-input" placeholder="Department" value="<?php echo htmlspecialchars($department); ?>" readonly required>
             <input type="text" id="targets" name="targets" class="form-input" placeholder="Targets" required>
-            <input type="number" id="totalBudget" name="totalBudget" class="form-input" placeholder="Total Budget" required>
+            <input type="number" id="totalBudget" name="totalBudget" class="form-input" placeholder="Total Budget"  value="0" readonly required>
             <select id="initiative" name="initiative" class="form-select" required>
                 <option value="" disabled selected>Initiative</option>
                 <option value="KPI 1.1">KPI 1.1</option>
@@ -389,51 +373,203 @@
         }
 
     </script>
-     <!-- Archive confirmation modal -->
-    <div id="archiveModal" class="modal">
-        <div class="modal-content">
-            <h2>Confirm Archiving</h2>
-            <p>Are you sure you want to archive this goal?</p>
-            <button id="confirmYes">Yes</button>
-            <button id="confirmNo">No</button>
-        </div>
-    </div>
 
+
+    <!-- Search Bar-->
     <script>
-        let currentForm = null;
+            document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            const clearSearch = document.getElementById('clearSearch');
 
-        function confirmArchive(event) {
-            event.preventDefault(); // Prevent form submission
-            currentForm = event.target.closest('form'); // Capture the form reference
-            var modal = document.getElementById("archiveModal");
-            modal.style.display = "block";
+            // Show or hide the "X" button based on input value
+            function toggleClearButton() {
+                if (searchInput.value.length > 0) {
+                    clearSearch.style.display = 'inline';
+                } else {
+                    clearSearch.style.display = 'none';
+                }
+            }
 
-            return false; // Prevent form submission
-        }
+            // Event listener to handle clearing the search
+            clearSearch.addEventListener('click', function() {
+                searchInput.value = '';
+                toggleClearButton();
+                window.location.href = 'ManageGoals.php';
+            });
 
-        document.getElementById("confirmYes").onclick = function() {
-        if (currentForm) {
-            currentForm.submit(); // Submit the captured form
-        }
-        var modal = document.getElementById("archiveModal");
-        modal.style.display = "none";
-    };
+            // Initial check for displaying the "X" button
+            toggleClearButton();
 
-    document.getElementById("confirmNo").onclick = function() {
-        var modal = document.getElementById("archiveModal");
-        modal.style.display = "none";
-    };
+            // Update "X" button visibility when input changes
+            searchInput.addEventListener('input', toggleClearButton);
+        });
+    </script>
 
-    // Close the modal when the user clicks outside of it
-    window.onclick = function(event) {
-        var modal = document.getElementById("archiveModal");
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
-    };
+
+
+
+<!-- Archive Confirmation Modal-->
+<div id="archiveModal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h2>Confirm Archiving</h2>
+        <p>Are you sure you want to archive this goal?</p>
+        <button id="confirmYes">Yes</button>
+        <button id="confirmNo">No</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Attach the confirmArchive function to buttons with the class 'archive-button'
+        $('.archive-button').on('click', function(event) {
+            event.preventDefault(); // Prevent default button behavior
+            
+            const goalId = $(this).data('goal-id');
+            const goalTitle = $(this).data('goal-title');
+
+            Swal.fire({
+                title: 'Confirm Archiving',
+                text: `Are you sure you want to archive this goal '${goalTitle}'?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'No',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Perform the AJAX request
+                    $.ajax({
+                        url: '../php/archive_goal.php', // Adjust the URL to your PHP script
+                        method: 'POST',
+                        data: {
+                            goal_id: goalId,
+                            goal_title: goalTitle
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.status === 'success') {
+                                Swal.fire({
+                                    title: 'Archived!',
+                                    text: response.message,
+                                    icon: 'success',
+                                    confirmButtonText: 'OK'
+                                }).then(() => {
+                                    location.reload(); // Optional: Reload the page
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: response.message,
+                                    icon: 'error',
+                                    confirmButtonText: 'OK'
+                                });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'There was an error archiving the goal.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    });
 </script>
 
 
+<!-- The Edit Goal Modal -->
+<div id="editGoalModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>  
+        <h2>EDIT GOAL</h2>
+        <form action="../php/edit_goal.php" method="post">
+            <input type="hidden" id="editGoalId" name="goal_id">
+            <input type="text" id="editTitle" name="title" class="form-input" placeholder="Title" required>
+            <input type="number" id="editYear" name="year" class="form-input" placeholder="Year" readonly required>
+            <input type="text" id="editDepartment" name="department" class="form-input" placeholder="Department" readonly required>
+            <input type="text" id="editTargets" name="targets" class="form-input" placeholder="Targets" required>
+            <input type="number" id="editTotalBudget" name="totalBudget" class="form-input" placeholder="Total Budget" readonly required>
+            <select id="editInitiative" name="initiative" class="form-select" required>
+                <option value="" disabled selected>Select Initiative</option>
+                <option value="KPI 1.1">KPI 1.1</option>
+                <option value="KPI 1.2">KPI 1.2</option>
+                <option value="KPI 1.3">KPI 1.3</option>
+                <option value="KPI 1.4">KPI 1.4</option>
+            </select>
+            <div class="kpi-text" id="editKpiDetails">Key performance indicator details</div>
+            <div class="save-button-container">
+                <button type="submit" class="create-button">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+    
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var editModal = document.getElementById("editGoalModal");
+        var editSpan = editModal.getElementsByClassName("close")[0];
+
+        // Close the modal when the user clicks on <span> (x)
+        editSpan.onclick = function() {
+            editModal.style.display = "none";
+        }
+
+        // Close the modal when the user clicks anywhere outside of it
+        window.onclick = function(event) {
+            if (event.target == editModal) {
+                editModal.style.display = "none";
+            }
+        }
+
+        document.querySelectorAll('.edit-button').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var goalId = this.dataset.goalId; // Assuming data-goal-id attribute is set on button
+                fetchEditGoalDetails(goalId);
+            });
+        });
+
+        function fetchEditGoalDetails(goalId) {
+            fetch(`../php/get_goal_details.php?id=${goalId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        populateEditGoalModal(data);
+                        editModal.style.display = "block";
+                    }
+                })
+                .catch(error => console.error('Error fetching goal details:', error));
+        }
+
+        function populateEditGoalModal(goal) {
+            document.getElementById("editGoalId").value = goal.id;
+            document.getElementById("editTitle").value = goal.title;
+            document.getElementById("editYear").value = goal.year;
+            document.getElementById("editDepartment").value = goal.department;
+            document.getElementById("editTargets").value = goal.targets;
+            document.getElementById("editTotalBudget").value = goal.total_budget;
+            document.getElementById("editInitiative").value = goal.initiative;
+            document.getElementById("editKpiDetails").textContent = "Details for " + goal.initiative;
+        }
+
+        document.getElementById("editInitiative").onchange = function() {
+            var selectedValue = this.value;
+            var kpiDetails = document.getElementById("editKpiDetails");
+            kpiDetails.textContent = "Details for " + selectedValue;
+        }
+    });
+</script>
+
+
+<!--PREVIOUS GOALS TABLE-->
 <div class="previous-goals-section">
     <div class="toggle-table">
         <span id="toggleChevron" class="chevron" onclick="toggleTable()">▶</span> 
@@ -446,65 +582,95 @@
             <th class="medium-style2">Budget</th>
             <th class="medium-style2">Actions</th>
         </tr>
-        <?php
-            // SQL query to fetch unarchived goals from previous years under the user's department
-            $sql = "SELECT id, title, initiative, targets, total_budget FROM goal WHERE archived IS NULL AND department = ? AND year < ? ORDER BY year DESC";
-            $stmt_goals = $conn->prepare($sql);
 
-            // Bind parameters
-            $stmt_goals->bind_param("si", $department, $current_year); // "si" for string and integer
+         <!-- php code for displaying PREVIOUS GOALS -->
+         <!-- php codes for displaying archiving and viewing are included -->
+         <?php
+        include '../php/previous_goal.php'
+        ?>
 
-            // Execute the statement
-            $stmt_goals->execute();
+    </table>
+</div>
 
-            // Get result set
-            $result = $stmt_goals->get_result();
+    <script>
+        function toggleTable() {
+            var table = document.getElementById("previousGoalsTable");
+            var chevron = document.getElementById("toggleChevron");
 
-            if ($result->num_rows > 0) {
-                $rowClass = "row-1";
-                while ($row = $result->fetch_assoc()) {
-                    echo "<tr class=\"$rowClass\">";
-                    echo "<td>{$row['title']}</td>";
-                    echo "<td>{$row['initiative']}</td>";
-                    echo "<td>{$row['targets']}</td>";
-                    echo "<td>{$row['total_budget']}</td>";
-                    echo '<td>
-                            <button class="view-button">View</button>
-                            <button class="copy-button">Copy</button>
-                            <form method="post" action="../php/archive_goal.php" style="display:inline" onsubmit="return confirmArchive(event);">
-                                <input type="hidden" name="goal_id" value="' . $row['id'] . '">
-                                <input type="hidden" name="goal_title" value="' . $row['title'] . '">
-                                <button type="submit" class="archive-button">Archive</button>
-                            </form>
-                        </td>';
-                    echo '</tr>';
-                    // Alternate row class for styling
-                    $rowClass = ($rowClass == "row-1") ? "row-2" : "row-1";
-                }
+            if (table.style.display === "none") {
+                table.style.display = "table";
+                chevron.textContent = "▼";
             } else {
-                echo "<tr><td colspan='5'>No goals found.</td></tr>";
+                table.style.display = "none";
+                chevron.textContent = "▶";
             }
+        }
+    </script>
 
-            $stmt_goals->close();
-            $conn->close();
-            ?>
-            </table>
-
+<!-- View Goal Modal -->
+<div id="viewGoalModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Goal Details</h2>
+        <div id="goalDetails"></div>
+        <button class="ok-button" id="okButton">OK</button>
+    </div>
 </div>
 
 <script>
-    function toggleTable() {
-        var table = document.getElementById("previousGoalsTable");
-        var chevron = document.getElementById("toggleChevron");
+document.addEventListener('DOMContentLoaded', function() {
+    var modal = document.getElementById("viewGoalModal");
+    var span = modal.getElementsByClassName("close")[0];
+    var okButton = document.getElementById("okButton");
 
-        if (table.style.display === "none") {
-            table.style.display = "table";
-            chevron.textContent = "▼";
-        } else {
-            table.style.display = "none";
-            chevron.textContent = "▶";
+    span.onclick = function() {
+        modal.style.display = "none";
+    }
+
+    okButton.onclick = function() {
+        modal.style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
         }
     }
+
+    document.querySelectorAll('.view-button').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var goalId = this.dataset.goalId; // Assuming data-goal-id attribute is set on button
+            fetchGoalDetails(goalId);
+        });
+    });
+
+    function fetchGoalDetails(goalId) {
+        fetch(`../php/view_goal.php?id=${goalId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    displayGoalDetails(data);
+                    modal.style.display = "block";
+                }
+            })
+            .catch(error => console.error('Error fetching goal details:', error));
+    }
+
+    function displayGoalDetails(goal) {
+        var details = `
+            <p><strong>Goal ID:</strong> ${goal.id}</p>
+            <p><strong>Title:</strong> ${goal.title}</p>
+            <p><strong>Year:</strong> ${goal.year}</p>
+            <p><strong>Department:</strong> ${goal.department}</p>
+            <p><strong>Targets:</strong> ${goal.targets}</p>
+            <p><strong>Total Budget:</strong> ${goal.total_budget}</p>
+            <p><strong>Initiative:</strong> ${goal.initiative}</p>
+        `;
+        document.getElementById("goalDetails").innerHTML = details;
+    }
+});
 </script>
 
 <script>
