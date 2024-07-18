@@ -8,19 +8,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $stmt = $conn->prepare($sql);
     $stmt->bind_param('i', $goalId);
 
-    // Debugging print to check if goal_id is received
-    echo "Received goal_id: " . htmlspecialchars($goalId);
-
+    // Execute the statement and check for success
     if ($stmt->execute()) {
-        $stmt->close();
-        $conn->close();
-        echo "<script>alert('Goal " . $goalTitle . " has been successfully archived.');";
-        echo "window.location.href = '../html/ManageGoals.php';</script>";
-            exit;
+        // Send a success response back to the AJAX request
+        echo json_encode(['status' => 'success', 'message' => "Goal $goalTitle has been successfully archived."]);
     } else {
-        echo "Error: " . $stmt->error;
+        // Send an error response back to the AJAX request
+        echo json_encode(['status' => 'error', 'message' => $stmt->error]);
     }
 
+    // Close the statement and connection
     $stmt->close();
     $conn->close();
 }
