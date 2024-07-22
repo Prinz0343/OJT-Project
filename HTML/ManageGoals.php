@@ -316,31 +316,51 @@
     </table>
 
 <!-- The create Goal Modal -->
-<div id="createGoalModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>CREATE GOAL</h2>
-        <form action="../php/creategoal.php" method="post">
-            <input type="text" id="title" name="title" class="form-input" placeholder="Title" required>
-            <input type="number" id="year" name="year" class="form-input" placeholder="Year" value="<?php echo date('Y'); ?>" readonly required>
-            <input type="text" id="department" name="department" class="form-input" placeholder="Department" value="<?php echo htmlspecialchars($department); ?>" readonly required>
-            <input type="text" id="targets" name="targets" class="form-input" placeholder="Targets" required>
-            <input type="number" id="totalBudget" name="totalBudget" class="form-input" placeholder="Total Budget"  value="0" readonly required>
-            <select id="initiative" name="initiative" class="form-select" required>
-                <option value="" disabled selected>Initiative</option>
-                <option value="KPI 1.1">KPI 1.1</option>
-                <option value="KPI 1.2">KPI 1.2</option>
-                <option value="KPI 1.3">KPI 1.3</option>
-                <option value="KPI 1.4">KPI 1.4</option>
-            </select>
-            <div class="kpi-text" id="kpiDetails">Key performance indicator details</div>
-            <div class="save-button-container">
-                <button type="submit" class="create-button">Save Goal</button>
-            </div>
-        </form>
+  <div id="createGoalModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>CREATE GOAL</h2>
+            <form action="../php/creategoal.php" method="post">
+                <input type="text" id="title" name="title" class="form-input" placeholder="Title" required>
+                <input type="number" id="year" name="year" class="form-input" placeholder="Year" value="<?php echo date('Y'); ?>" readonly required>
+                <input type="text" id="department" name="department" class="form-input" placeholder="Department" value="<?php echo htmlspecialchars($department); ?>" readonly required>
+                <input type="text" id="targets" name="targets" class="form-input" placeholder="Targets" required>
+                <input type="number" id="totalBudget" name="totalBudget" class="form-input" placeholder="Total Budget" value="0" readonly required>
+                <select id="initiative" name="initiative" class="form-select" required>
+                    <option value="" disabled selected>Initiative</option>
+                    <!-- Options from KPI 1.1 to KPI 10.5 -->
+                    <?php
+                    // Define the range of values for each KPI
+                    $kpi_ranges = [
+                        1 => 7,
+                        2 => 11,
+                        3 => 3,
+                        4 => 3,
+                        5 => 9,
+                        6 => 8,
+                        7 => 3,
+                        8 => 3,
+                        9 => 7,
+                        10 => 5
+                    ];
+
+                    // Loop through the KPIs and generate options
+                    foreach ($kpi_ranges as $i => $max_j) {
+                        for ($j = 1; $j <= $max_j; $j++) {
+                            echo '<option value="KPI ' . $i . '.' . $j . '">KPI ' . $i . '.' . $j . '</option>';
+                        }
+                    }
+                    ?>
+                 </select>
+                <div class="kpi-text" id="kpiDetails">Key performance indicator details</div>
+                <div class="save-button-container">
+                    <button type="submit" class="create-button">Save Goal</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
-    
+
+    <script src="../php/kpiDetails.js"></script>
     <script>
         // Get the modal
         var modal = document.getElementById("createGoalModal");
@@ -368,10 +388,8 @@
         // Update KPI details based on initiative selection
         document.getElementById("initiative").onchange = function() {
             var selectedValue = this.value;
-            var kpiDetails = document.getElementById("kpiDetails");
-            kpiDetails.textContent = "Details for " + selectedValue;
+            updateKpiDetails(selectedValue);
         }
-
     </script>
 
 
